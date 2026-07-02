@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 os.environ["DATABASE_URL"] = "sqlite:///./test_employees.db"
@@ -8,15 +9,20 @@ from fastapi.testclient import TestClient
 from app.database import Base, engine
 from app.main import app
 
-client = TestClient(app, follow_redirects=False)
+client = TestClient(app)
+
+
+async def _reset_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 
 @pytest.fixture(autouse=True)
 def clean_db():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    asyncio.run(_reset_db())
     yield
-    Base.metadata.drop_all(bind=engine)
+    asyncio.run(_reset_db())
 
 
 def create_sample_employee(**overrides):
@@ -29,7 +35,7 @@ def create_sample_employee(**overrides):
         "gender": "male",
     }
     data.update(overrides)
-    return client.post("/employees/new", data=data)
+    return client.post("/employees/new", data=data, follow_redirects=False)
 
 
 def test_registry_page_loads_empty():
@@ -78,6 +84,7 @@ def test_edit_employee_updates_fields():
             "birth_date": "2000-05-20",
             "gender": "male",
         },
+        follow_redirects=False,
     )
     assert resp.status_code == 303
 
@@ -88,7 +95,7 @@ def test_edit_employee_updates_fields():
 
 def test_delete_employee_removes_from_registry():
     create_sample_employee()
-    resp = client.post("/employees/1/delete")
+    resp = client.post("/employees/1/delete", follow_redirects=False)
     assert resp.status_code == 303
 
     resp = client.get("/")
@@ -124,6 +131,7 @@ def test_photo_upload_rejects_oversized_file():
             "gender": "male",
         },
         files={"photo": ("photo.jpg", big_content, "image/jpeg")},
+        follow_redirects=False,
     )
     assert resp.status_code == 422
     assert "200 к" in resp.text

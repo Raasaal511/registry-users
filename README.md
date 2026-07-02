@@ -8,30 +8,38 @@
 
 ## Стек
 
-- Python 3.12, FastAPI, Uvicorn
-- SQLAlchemy 2.0 (SQLite по умолчанию, поддержка PostgreSQL через `DATABASE_URL`)
+- Python 3.12, FastAPI (async), Uvicorn
+- SQLAlchemy 2.0 async (SQLite/aiosqlite по умолчанию, PostgreSQL/asyncpg через `DATABASE_URL`)
 - Jinja2 для серверного рендеринга HTML
 - Tailwind CSS (через CDN, без сборки)
 - Немного ванильного JavaScript (проверка размера фото на клиенте, подтверждение удаления)
 - pytest для тестов
 
-## Структура проекта
+## Архитектура
+
+Слоистая структура: HTTP-слой не обращается к БД напрямую, вся работа с
+данными и бизнес-правила вынесены из роутов.
 
 ```
 app/
-  main.py       # FastAPI-приложение и маршруты
-  models.py     # SQLAlchemy-модель Employee
-  crud.py       # операции с БД: список/поиск/фильтры/пагинация, CRUD
-  database.py   # подключение к БД, сессия
+  main.py         FastAPI-приложение, lifespan, роутер
+  routes.py       HTTP-эндпоинты (тонкие, делегируют в EmployeeService)
+  service.py      EmployeeService — бизнес-логика: поиск/фильтры/пагинация, create/update/delete
+  repository.py   EmployeeRepository — async-запросы к БД (SQLAlchemy Core/ORM)
+  validators.py   EmployeeFormValidator, validate_photo — валидация формы и фото
+  schemas.py      DTO: EmployeeFormInput, EmployeeFilters, PageResult, FormValidationResult
+  models.py       SQLAlchemy-модель Employee
+  database.py     async engine/session, инициализация БД
 templates/
-  base.html
-  registry.html        # страница 1 — реестр
-  employee_form.html   # страница 2 — создание/редактирование
+  base.html, registry.html (страница 1 — реестр), employee_form.html (страница 2 — форма)
 static/
   css/, js/, img/
 tests/
-  test_app.py   # тесты на FastAPI TestClient
+  test_app.py     тесты на FastAPI TestClient
 ```
+
+Роут вызывает `EmployeeService`, сервис — `EmployeeRepository` для чтения/записи
+и `validators` для проверки формы; наружу утечек SQL или деталей запросов нет.
 
 ## Функционал
 
@@ -73,6 +81,9 @@ uvicorn app.main:app --reload
 export DATABASE_URL=postgresql://user:password@localhost:5432/registry_users
 uvicorn app.main:app --reload
 ```
+
+Обычная строка подключения (`postgresql://...` или `postgres://...`) подойдёт
+без изменений — приложение само подставляет асинхронный драйвер `asyncpg`.
 
 ## Тесты
 
