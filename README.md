@@ -51,7 +51,7 @@ tests/
 Требуется Python 3.11+.
 
 ```bash
-git clone <URL-репозитория>
+git clone https://github.com/Raasaal511/registry-users.git
 cd registry-users
 
 python3 -m venv .venv
@@ -99,5 +99,5 @@ pytest
 
 ## Демо
 
-- Репозиторий: <ссылка на GitHub>
+- Репозиторий: https://github.com/Raasaal511/registry-users
 - Демо-версия: <ссылка на хостинг>
