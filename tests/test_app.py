@@ -1,5 +1,6 @@
 import asyncio
 import os
+from datetime import date
 
 os.environ["DATABASE_URL"] = "sqlite:///./test_employees.db"
 
@@ -23,6 +24,11 @@ def clean_db():
     asyncio.run(_reset_db())
     yield
     asyncio.run(_reset_db())
+
+
+def birth_date_for_age(age: int) -> str:
+    today = date.today()
+    return today.replace(year=today.year - age).isoformat()
 
 
 def create_sample_employee(**overrides):
@@ -118,6 +124,41 @@ def test_filter_by_gender():
     resp = client.get("/", params={"gender": "female"})
     assert "Петрова" in resp.text
     assert "Иванов" not in resp.text
+
+
+def test_filter_by_age_range():
+    create_sample_employee(last_name="Молодой", birth_date=birth_date_for_age(20))
+    create_sample_employee(last_name="Средний", birth_date=birth_date_for_age(30))
+    create_sample_employee(last_name="Старший", birth_date=birth_date_for_age(50))
+
+    resp = client.get("/", params={"age_from": 25, "age_to": 35})
+    assert "Средний" in resp.text
+    assert "Молодой" not in resp.text
+    assert "Старший" not in resp.text
+
+
+def test_search_by_exact_age():
+    create_sample_employee(
+        last_name="Иванов", first_name="Виктор", middle_name="", phone="+79001112233", birth_date=birth_date_for_age(25)
+    )
+    create_sample_employee(
+        last_name="Кузнецов", first_name="Олег", middle_name="", phone="+79004445566", birth_date=birth_date_for_age(40)
+    )
+
+    resp = client.get("/", params={"q": "25"})
+    assert "Иванов Виктор" in resp.text
+    assert "Кузнецов Олег" not in resp.text
+
+
+def test_gender_age_and_text_filters_combine_in_one_query():
+    create_sample_employee(last_name="Смирнова", first_name="Анна", gender="female", birth_date=birth_date_for_age(28))
+    create_sample_employee(last_name="Смирнов", first_name="Антон", gender="male", birth_date=birth_date_for_age(28))
+    create_sample_employee(last_name="Орлова", first_name="Ольга", gender="female", birth_date=birth_date_for_age(60))
+
+    resp = client.get("/", params={"q": "Смирн", "gender": "female", "age_from": 20, "age_to": 30})
+    assert "Смирнова Анна" in resp.text
+    assert "Смирнов Антон" not in resp.text
+    assert "Орлова" not in resp.text
 
 
 def test_photo_upload_rejects_oversized_file():

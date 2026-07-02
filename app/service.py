@@ -16,9 +16,7 @@ class EmployeeService:
         return await self._repository.get_by_id(employee_id)
 
     async def search(self, filters: EmployeeFilters) -> PageResult:
-        employees = await self._repository.list_by_gender(filters.genders)
-        employees = self._filter_by_text(employees, filters.query)
-        employees = self._filter_by_age(employees, filters.age_from, filters.age_to)
+        employees = await self._repository.list_employees(filters)
         return self._paginate(employees, filters.page)
 
     async def create(self, form: EmployeeFormInput, photo: UploadFile | None) -> tuple[Employee | None, dict[str, str]]:
@@ -73,32 +71,6 @@ class EmployeeService:
 
     async def delete(self, employee: Employee) -> None:
         await self._repository.delete(employee)
-
-    @staticmethod
-    def _filter_by_text(employees: list[Employee], query: str | None) -> list[Employee]:
-        if not query:
-            return employees
-        needle = query.strip().lower()
-        return [e for e in employees if EmployeeService._matches(e, needle)]
-
-    @staticmethod
-    def _matches(employee: Employee, needle: str) -> bool:
-        haystacks = (
-            employee.last_name,
-            employee.first_name,
-            employee.middle_name or "",
-            employee.phone or "",
-            str(employee.age),
-        )
-        return any(needle in haystack.lower() for haystack in haystacks)
-
-    @staticmethod
-    def _filter_by_age(employees: list[Employee], age_from: int | None, age_to: int | None) -> list[Employee]:
-        if age_from is not None:
-            employees = [e for e in employees if e.age >= age_from]
-        if age_to is not None:
-            employees = [e for e in employees if e.age <= age_to]
-        return employees
 
     @staticmethod
     def _paginate(employees: list[Employee], page: int) -> PageResult:

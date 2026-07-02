@@ -24,8 +24,8 @@
 app/
   main.py         FastAPI-приложение, lifespan, роутер
   routes.py       HTTP-эндпоинты (тонкие, делегируют в EmployeeService)
-  service.py      EmployeeService — бизнес-логика: поиск/фильтры/пагинация, create/update/delete
-  repository.py   EmployeeRepository — async-запросы к БД (SQLAlchemy Core/ORM)
+  service.py      EmployeeService — бизнес-логика: пагинация, create/update/delete, вызов валидаторов
+  repository.py   EmployeeRepository — один SQL-запрос со всеми фильтрами (пол, возраст с/по, текстовый поиск по ФИО/телефону/возрасту)
   validators.py   EmployeeFormValidator, validate_photo — валидация формы и фото
   schemas.py      DTO: EmployeeFormInput, EmployeeFilters, PageResult, FormValidationResult
   models.py       SQLAlchemy-модель Employee
