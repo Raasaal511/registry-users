@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Реестр сотрудников{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold">Реестр сотрудников</h1>
+  <a href="/employees/new" class="text-blue-600 hover:underline text-sm font-medium">+ Добавить сотрудника</a>
+</div>
+
+<form method="get" action="/" class="bg-white border border-slate-200 rounded-lg p-4 mb-6 space-y-3">
+  <div>
+    <input
+      type="text"
+      name="q"
+      value="{{ q }}"
+      placeholder="Поиск по ФИО, возрасту, телефону"
+      class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+    />
+  </div>
+  <div class="flex flex-wrap items-end gap-6">
+    <div>
+      <div class="text-xs font-medium text-slate-500 mb-1">Пол</div>
+      <label class="inline-flex items-center gap-1 mr-3 text-sm">
+        <input type="checkbox" name="gender" value="male" {% if "male" in selected_genders %}checked{% endif %} />
+        Муж
+      </label>
+      <label class="inline-flex items-center gap-1 text-sm">
+        <input type="checkbox" name="gender" value="female" {% if "female" in selected_genders %}checked{% endif %} />
+        Жен
+      </label>
+    </div>
+    <div>
+      <div class="text-xs font-medium text-slate-500 mb-1">Возраст</div>
+      <div class="flex items-center gap-2">
+        <input type="number" min="0" name="age_from" value="{{ age_from }}" placeholder="с"
+               class="w-20 border border-slate-300 rounded-md px-2 py-1.5 text-sm" />
+        <input type="number" min="0" name="age_to" value="{{ age_to }}" placeholder="по"
+               class="w-20 border border-slate-300 rounded-md px-2 py-1.5 text-sm" />
+      </div>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-blue-700">
+      Поиск
+    </button>
+    {% if q or selected_genders or age_from or age_to %}
+    <a href="/" class="text-sm text-slate-500 hover:underline">Сбросить</a>
+    {% endif %}
+  </div>
+</form>
+
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100 text-slate-600 text-left">
+      <tr>
+        <th class="px-3 py-2 font-medium">№ id</th>
+        <th class="px-3 py-2 font-medium">Фото</th>
+        <th class="px-3 py-2 font-medium">ФИО</th>
+        <th class="px-3 py-2 font-medium">Возраст</th>
+        <th class="px-3 py-2 font-medium">Телефон</th>
+        <th class="px-3 py-2 font-medium">Пол</th>
+        <th class="px-3 py-2 font-medium">Действие</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in employees %}
+      <tr class="border-t border-slate-100 hover:bg-slate-50">
+        <td class="px-3 py-2 text-slate-500">{{ e.id }}</td>
+        <td class="px-3 py-2">
+          <img
+            src="{% if e.photo %}/employees/{{ e.id }}/photo{% else %}/static/img/avatar-placeholder.svg{% endif %}"
+            alt=""
+            class="w-9 h-9 rounded-full object-cover relative transition-transform duration-150 hover:scale-[4] hover:z-50 hover:shadow-2xl cursor-zoom-in"
+          />
+        </td>
+        <td class="px-3 py-2 font-medium">{{ e.full_name }}</td>
+        <td class="px-3 py-2">{{ e.age }} лет</td>
+        <td class="px-3 py-2">{{ e.phone or "—" }}</td>
+        <td class="px-3 py-2">
+          {% if e.gender.value == "male" %}
+          <span class="text-blue-600 font-medium">Муж.</span>
+          {% else %}
+          <span class="text-pink-600 font-medium">Жен.</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-2 whitespace-nowrap">
+          <a href="/employees/{{ e.id }}/edit" class="text-blue-600 hover:underline">Ред</a>,
+          <form method="post" action="/employees/{{ e.id }}/delete" class="inline"
+                onsubmit="return confirm('Удалить сотрудника {{ e.full_name }}?');">
+            <button type="submit" class="text-red-600 hover:underline">удал</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="px-3 py-6 text-center text-slate-400">Сотрудники не найдены</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex items-center gap-2 mt-4 text-sm">
+  <span class="text-slate-500 mr-2">Страницы</span>
+  {% for p in range(1, total_pages + 1) %}
+  <a href="?q={{ q }}&age_from={{ age_from }}&age_to={{ age_to }}{% for g in selected_genders %}&gender={{ g }}{% endfor %}&page={{ p }}"
+     class="px-2 py-1 rounded {% if p == page %}bg-blue-600 text-white{% else %}text-blue-600 hover:underline{% endif %}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<p class="text-xs text-slate-400 mt-4">Всего сотрудников: {{ total }}</p>
+
+{% endblock %}
