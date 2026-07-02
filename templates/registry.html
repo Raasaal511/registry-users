@@ -102,7 +102,7 @@
 <div class="flex items-center gap-2 mt-4 text-sm">
   <span class="text-slate-500 mr-2">Страницы</span>
   {% for p in range(1, total_pages + 1) %}
-  <a href="?q={{ q }}&age_from={{ age_from }}&age_to={{ age_to }}{% for g in selected_genders %}&gender={{ g }}{% endfor %}&page={{ p }}"
+  <a href="?q={{ q | urlencode }}&age_from={{ age_from | urlencode }}&age_to={{ age_to | urlencode }}{% for g in selected_genders %}&gender={{ g | urlencode }}{% endfor %}&page={{ p }}"
      class="px-2 py-1 rounded {% if p == page %}bg-blue-600 text-white{% else %}text-blue-600 hover:underline{% endif %}">{{ p }}</a>
   {% endfor %}
 </div>

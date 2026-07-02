@@ -1,4 +1,3 @@
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models import Employee, Gender
@@ -23,29 +22,22 @@ def list_employees(
     if genders:
         stmt = stmt.filter(Employee.gender.in_(genders))
 
-    if query:
-        like = f"%{query}%"
-        stmt = stmt.filter(
-            or_(
-                Employee.last_name.ilike(like),
-                Employee.first_name.ilike(like),
-                Employee.middle_name.ilike(like),
-                Employee.phone.ilike(like),
-            )
-        )
-
     employees = stmt.order_by(Employee.last_name, Employee.first_name).all()
 
-    if query and query.strip().isdigit():
-        age_query = int(query.strip())
-        text_matches = {e.id for e in employees}
-        # widen with age-only matches from the gender-filtered set (ignore text filter)
-        base_stmt = db.query(Employee)
-        if genders:
-            base_stmt = base_stmt.filter(Employee.gender.in_(genders))
-        extra = [e for e in base_stmt.all() if e.age == age_query and e.id not in text_matches]
-        employees = employees + extra
-        employees.sort(key=lambda e: (e.last_name, e.first_name))
+    # Age is derived from birth_date, not a DB column, and SQLite/PostgreSQL
+    # disagree on date arithmetic, so text/age search is matched in Python
+    # for one consistent, portable behaviour across both databases.
+    if query:
+        needle = query.strip().lower()
+        employees = [
+            e
+            for e in employees
+            if needle in e.last_name.lower()
+            or needle in e.first_name.lower()
+            or needle in (e.middle_name or "").lower()
+            or needle in (e.phone or "").lower()
+            or needle in str(e.age)
+        ]
 
     if age_from is not None:
         employees = [e for e in employees if e.age >= age_from]
